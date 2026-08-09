@@ -1,0 +1,18 @@
+<?php return [
+    'app_name'      => 'iCloud Checker',
+    'dashboard'     => 'Dashboard',
+    'check_imei'    => 'Check IMEI/Serial',
+    'order_history' => 'Order History',
+    'credits'       => 'Credits',
+    'settings'      => 'Settings',
+    'logout'        => 'Logout',
+    'balance'       => 'Balance',
+    'topup'         => 'Top Up',
+    'users'         => 'Users',
+    'services'      => 'Services',
+    'orders'        => 'Orders',
+    'save'          => 'Save',
+    'cancel'        => 'Cancel',
+    'search'        => 'Search',
+    'baht'          => 'THB',
+];

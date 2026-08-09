@@ -1,0 +1,8 @@
+
+// Add this to bootstrap/app.php inside ->withMiddleware(function (Middleware $middleware) { ... })
+
+$middleware->alias([
+    'admin'       => \App\Http\Middleware\AdminMiddleware::class,
+    'active.user' => \App\Http\Middleware\ActiveUserMiddleware::class,
+    'set.locale'  => \App\Http\Middleware\SetLocale::class,
+]);
