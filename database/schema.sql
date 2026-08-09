@@ -115,10 +115,10 @@ CREATE TABLE sessions (
     INDEX (last_activity)
 );
 
--- Seed: Admin user (password: admin1234)
+-- Seed: Admin user (password: admin1234) — CHANGE THIS AFTER FIRST LOGIN
 INSERT INTO users (name, email, password, role, balance, locale) VALUES
 ('Admin', 'admin@icloudchecker.com',
- '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+ '$2y$12$FtdU8do3CEDxFIU31HWr7u62Fqi377/tEAHEK5A6EF4rr1VUbTA1e',
  'admin', 0.00, 'th');
 
 -- Seed: Default Services
