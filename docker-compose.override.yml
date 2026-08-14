@@ -1,0 +1,52 @@
+# Development override — Compose auto-loads this alongside docker-compose.yml.
+# Turns the prod-shaped smoke-test stack into a live-edit dev stack:
+#   - Bind-mounts source into the container (no rebuild on PHP/blade edits)
+#   - APP_ENV=local + APP_DEBUG=true (Laravel error pages, no config cache)
+#   - Opcache disabled via docker/dev/opcache.ini
+#   - Vite runs on the HOST (`npm run dev`), NOT inside the container
+#
+# Usage:
+#   1. Set ADMIN_EMAIL in your shell (or leave unset — admin:ensure will skip)
+#   2. `docker compose up -d`          → app on http://localhost:8090
+#   3. `npm run dev`                    → Vite HMR on http://localhost:5173
+#   4. Edit code — changes reflect immediately in the browser
+#
+# To run the production-shaped smoke-test stack instead of dev, either delete
+# this file locally or use `docker compose -f docker-compose.yml up`.
+
+services:
+  app:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8090
+      LOG_LEVEL: debug
+
+      # Let entrypoint's non-production branch generate an ephemeral APP_KEY.
+      APP_KEY: ""
+
+      # Skip prod-only entrypoint steps that fight iteration.
+      RUN_QUEUE_WORKER: "false"
+      RUN_SCHEDULER: "false"
+    volumes:
+      # Live source mount — every edit is visible to the container instantly.
+      - .:/var/www/html
+      # Keep bootstrap/cache and storage from the image; both must stay
+      # consistent with the container's baked assumptions. vendor/ comes
+      # from the host bind-mount above so new classes are auto-discovered
+      # (`composer dump-autoload -o` on the host after adding a class).
+      - app-bootstrap-cache:/var/www/html/bootstrap/cache
+      - app-storage:/var/www/html/storage
+      # Override opcache config to enable timestamp validation.
+      - ./docker/dev/opcache.ini:/usr/local/etc/php/conf.d/zz-opcache.ini:ro
+      # Live entrypoint so schema/migration changes don't need a rebuild.
+      - ./docker/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+      # Live nginx config for the same reason.
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/default.conf:/etc/nginx/http.d/default.conf:ro
+    # Give the healthcheck extra grace since first boot re-imports the schema.
+    healthcheck:
+      start_period: 60s
+
+volumes:
+  app-bootstrap-cache:

@@ -102,6 +102,10 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /var/log/supervisor /run/nginx \
+        /tmp/nginx-client-body /tmp/nginx-proxy /tmp/nginx-fastcgi \
+        /tmp/nginx-uwsgi /tmp/nginx-scgi \
+    && chown -R app:app /run/nginx /tmp/nginx-client-body /tmp/nginx-proxy \
+        /tmp/nginx-fastcgi /tmp/nginx-uwsgi /tmp/nginx-scgi \
     && rm -f /etc/nginx/http.d/default.conf.bak \
     && chown -R app:app /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R ug+rwX /var/www/html/storage /var/www/html/bootstrap/cache
