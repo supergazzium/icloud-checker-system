@@ -35,6 +35,13 @@ services:
       RUN_SCHEDULER: "true"
 
       TRUSTED_PROXIES: "*"
+
+      # First-boot admin. Pass through from the host shell so local tests can
+      # exercise `php artisan admin:ensure`. Leave ADMIN_PASSWORD unset to
+      # have a strong random password generated and printed once to stdout.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       mysql:
         condition: service_healthy
