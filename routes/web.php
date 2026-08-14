@@ -1,12 +1,11 @@
 <?php
 use App\Http\Controllers\{DashboardController, CheckController, OrderController, CreditController, LanguageController};
-use App\Http\Controllers\Admin\{AdminDashboardController, AdminUserController, AdminServiceController, AdminOrderController, AdminSettingController};
+use App\Http\Controllers\Admin\{AdminDashboardController, AdminUserController, AdminServiceController, AdminOrderController, AdminSettingController, AdminBankAccountController, AdminTopupController};
 use Illuminate\Support\Facades\Route;
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 Route::get('/terms',   fn() => view('legal.terms'))->name('legal.terms');
 Route::get('/privacy', fn() => view('legal.privacy'))->name('legal.privacy');
-Route::post('/credits/topup/webhook', [CreditController::class, 'webhook'])->name('credits.topup.webhook')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->middleware('throttle:60,1');
 
 require __DIR__.'/auth.php';
 
@@ -20,11 +19,9 @@ Route::middleware(['auth','active.user','set.locale','password.change'])->group(
     Route::get('/orders',         [OrderController::class,'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class,'show'])->name('orders.show');
     Route::get('/credits',  [CreditController::class,'index'])->name('credits.index');
-    Route::post('/credits/topup',                [CreditController::class,'topupStore'])->name('credits.topup.store');
-    Route::post('/credits/topup/qr',              [CreditController::class,'topupQrStore'])->name('credits.topup.qr.store');
-    Route::get('/credits/topup/{topup}/qr-status',[CreditController::class,'topupQrStatus'])->name('credits.topup.qr.status');
-    Route::get('/credits/topup/{topup}/return',   [CreditController::class,'topupReturn'])->name('credits.topup.return');
-    Route::get('/credits/topup/{topup}/check',    [CreditController::class,'topupCheck'])->name('credits.topup.check');
+    Route::post('/credits/topup',                 [CreditController::class,'topupStore'])->name('credits.topup.store');
+    Route::get('/credits/topup/{topup}',           [CreditController::class,'topupShow'])->name('credits.topup.show');
+    Route::get('/credits/topup/{topup}/slip',      [CreditController::class,'topupSlip'])->name('credits.topup.slip');
     Route::get('/credits/{transaction}/receipt',  [CreditController::class,'receipt'])->name('credits.receipt');
 
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
@@ -55,6 +52,19 @@ Route::middleware(['auth','admin','set.locale','password.change','2fa'])->prefix
     Route::get('/settings',                       [AdminSettingController::class,'index'])->name('settings.index');
     Route::post('/settings',                      [AdminSettingController::class,'update'])->name('settings.update');
     Route::get('/audit',                           [\App\Http\Controllers\Admin\AdminAuditController::class,'index'])->name('audit.index');
+
+    // Bank accounts (used as topup destinations)
+    Route::get('/bank-accounts',                            [AdminBankAccountController::class,'index'])->name('bank-accounts.index');
+    Route::post('/bank-accounts',                           [AdminBankAccountController::class,'store'])->name('bank-accounts.store');
+    Route::put('/bank-accounts/{bankAccount}',              [AdminBankAccountController::class,'update'])->name('bank-accounts.update');
+    Route::post('/bank-accounts/{bankAccount}/toggle',      [AdminBankAccountController::class,'toggleActive'])->name('bank-accounts.toggle');
+    Route::delete('/bank-accounts/{bankAccount}',           [AdminBankAccountController::class,'destroy'])->name('bank-accounts.destroy');
+
+    // Topup review
+    Route::get('/topups',                          [AdminTopupController::class,'index'])->name('topups.index');
+    Route::get('/topups/{topup}',                  [AdminTopupController::class,'show'])->name('topups.show');
+    Route::post('/topups/{topup}/approve',         [AdminTopupController::class,'approve'])->name('topups.approve');
+    Route::post('/topups/{topup}/reject',          [AdminTopupController::class,'reject'])->name('topups.reject');
 });
 
 Route::middleware(['auth'])->group(function () {

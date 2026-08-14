@@ -95,38 +95,51 @@ if [ "${RUN_SCHEMA_BOOTSTRAP:-true}" = "true" ] \
         } catch (Throwable $e) { echo "0"; }
     ' 2>/dev/null || echo "0")
 
+    # Reusable importer: takes a filename in $SQL_FILE.
+    import_sql() {
+        SQL_FILE="$1" php -r '
+            $file = getenv("SQL_FILE");
+            try {
+                $pdo = new PDO(
+                    "mysql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: 3306).";dbname=".getenv("DB_DATABASE"),
+                    getenv("DB_USERNAME"),
+                    getenv("DB_PASSWORD"),
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                );
+                $sql = file_get_contents($file);
+                $sql = preg_replace("/^\s*--.*$/m", "", $sql);
+                foreach (preg_split("/;\s*(\r?\n|$)/", $sql) as $stmt) {
+                    $stmt = trim($stmt);
+                    if ($stmt === "") continue;
+                    $pdo->exec($stmt);
+                }
+                fwrite(STDERR, "[entrypoint]   OK: $file\n");
+            } catch (Throwable $e) {
+                fwrite(STDERR, "[entrypoint]   FAILED: $file — ".$e->getMessage()."\n");
+                exit(1);
+            }
+        '
+    }
+
     if [ "${HAS_USERS}" = "0" ]; then
+        # Fresh database: import base schema first.
         for sql in database/schema.sql database/topup_migration.sql docker/laravel-support.sql; do
             [ -f "$sql" ] || continue
             echo "[entrypoint] Importing $sql ..."
-            SQL_FILE="$sql" php -r '
-                $file = getenv("SQL_FILE");
-                try {
-                    $pdo = new PDO(
-                        "mysql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: 3306).";dbname=".getenv("DB_DATABASE"),
-                        getenv("DB_USERNAME"),
-                        getenv("DB_PASSWORD"),
-                        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-                    );
-                    $sql = file_get_contents($file);
-                    // Strip line comments; preserve string contents.
-                    $sql = preg_replace("/^\s*--.*$/m", "", $sql);
-                    // Split on semicolons at line end, ignoring empties.
-                    foreach (preg_split("/;\s*(\r?\n|$)/", $sql) as $stmt) {
-                        $stmt = trim($stmt);
-                        if ($stmt === "") continue;
-                        $pdo->exec($stmt);
-                    }
-                    fwrite(STDERR, "[entrypoint]   OK: $file\n");
-                } catch (Throwable $e) {
-                    fwrite(STDERR, "[entrypoint]   FAILED: $file — ".$e->getMessage()."\n");
-                    exit(1);
-                }
-            ' || echo "[entrypoint] Import of $sql failed — continuing."
+            import_sql "$sql" || echo "[entrypoint] Import of $sql failed — continuing."
         done
     else
-        echo "[entrypoint] Schema already present — skipping SQL bootstrap."
+        echo "[entrypoint] Base schema already present — skipping bulk bootstrap."
     fi
+
+    # Idempotent migrations: always run, even on existing databases.
+    # These files use `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
+    # patterns and safely no-op when their changes are already applied.
+    for sql in database/bank_transfer_migration.sql; do
+        [ -f "$sql" ] || continue
+        echo "[entrypoint] Applying idempotent migration $sql ..."
+        import_sql "$sql" || echo "[entrypoint] Migration $sql reported errors — continuing."
+    done
 fi
 
 # Provision or update the initial admin from ADMIN_* env vars. Idempotent:

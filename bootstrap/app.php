@@ -19,9 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.change'=> \App\Http\Middleware\ForcePasswordChange::class,
         ]);
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
-        $middleware->validateCsrfTokens(except: [
-            'credits/topup/webhook',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

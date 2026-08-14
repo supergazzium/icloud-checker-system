@@ -8,160 +8,118 @@
     </div>
 </div>
 
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6" x-data="{ tab:'card', amount: null, custom: '', loading: false, error: '' }">
-    <div class="flex gap-2 mb-5 border-b border-gray-100">
-        <button type="button" @click="tab='card'" :class="tab==='card' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'" class="px-1 pb-3 border-b-2 text-sm font-semibold"><i class="fas fa-credit-card mr-1.5"></i>บัตรเครดิต/เดบิต</button>
-        <button type="button" @click="tab='qr'" :class="tab==='qr' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'" class="px-1 pb-3 border-b-2 text-sm font-semibold ml-4"><i class="fas fa-qrcode mr-1.5"></i>พร้อมเพย์ (QR)</button>
-    </div>
-
-    @if($pendingTopup)
-    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 flex items-center justify-between">
-        <p class="text-sm text-yellow-800">มีรายการเติมเครดิต ฿{{ number_format($pendingTopup->amount,2) }} ที่ยังไม่เสร็จสมบูรณ์</p>
-        <a href="{{ route('credits.topup.check',$pendingTopup) }}" class="text-sm font-semibold text-yellow-900 bg-yellow-200 hover:bg-yellow-300 px-3 py-1.5 rounded-lg">ตรวจสอบสถานะ</a>
-    </div>
-    @endif
-
-    <div x-show="tab==='card'">
-    <p class="text-sm text-gray-500 mb-2">เลือกจำนวนเงิน</p>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        @foreach([300,500,1000,3000] as $preset)
-        <button type="button" @click="amount={{ $preset }}; custom=''"
-            :class="amount==={{ $preset }} ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'"
-            class="border rounded-xl py-3 font-bold transition">฿{{ number_format($preset) }}</button>
+@if($pendingTopups->isNotEmpty())
+<div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 mb-6">
+    <p class="font-semibold text-yellow-900 mb-3"><i class="fas fa-hourglass-half mr-2"></i>{{ __('app.pending_topups') }}</p>
+    <div class="space-y-2">
+        @foreach($pendingTopups as $pt)
+        <a href="{{ route('credits.topup.show', $pt) }}" class="flex items-center justify-between bg-white border border-yellow-200 rounded-xl px-4 py-3 hover:border-yellow-400 transition">
+            <div>
+                <p class="text-sm font-semibold text-gray-900">฿{{ number_format($pt->amount,2) }} — {{ $pt->transfer_reference }}</p>
+                <p class="text-xs text-gray-500">{{ __('app.submitted_at') }}: {{ $pt->created_at->format('d/m/Y H:i') }}</p>
+            </div>
+            <span class="text-xs font-semibold text-yellow-800 bg-yellow-100 px-3 py-1 rounded-full">{{ __('app.pending_review') }}</span>
+        </a>
         @endforeach
     </div>
-    <div class="flex items-center gap-3 mb-6">
-        <span class="text-sm text-gray-500">หรือระบุจำนวนเอง</span>
-        <input type="number" x-model="custom" @input="amount=null" min="100" max="100000" step="1"
-               placeholder="เช่น 750" class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-40">
-    </div>
-
-    <p class="text-sm text-gray-500 mb-2">ข้อมูลบัตรเครดิต/เดบิต</p>
-    <div class="grid sm:grid-cols-2 gap-3 mb-3">
-        <input id="omise-card-number" type="text" inputmode="numeric" placeholder="หมายเลขบัตร" maxlength="19"
-               class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm sm:col-span-2">
-        <input id="omise-card-name" type="text" placeholder="ชื่อบนบัตร (ตัวพิมพ์ใหญ่)"
-               class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm sm:col-span-2">
-        <input id="omise-card-expiry" type="text" placeholder="MM/YY" maxlength="5"
-               class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
-        <input id="omise-card-cvv" type="text" inputmode="numeric" placeholder="CVV" maxlength="4"
-               class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm">
-    </div>
-
-    <p x-show="error" x-text="error" class="text-sm text-red-600 mb-3"></p>
-
-    <form id="omise-topup-form" method="POST" action="{{ route('credits.topup.store') }}">
-        @csrf
-        <input type="hidden" name="amount" :value="custom ? custom : amount">
-        <input type="hidden" name="omise_token" id="omise-token">
-        <button type="button" @click="submitTopup($event, {amount: custom ? custom : amount})"
-            :disabled="(!amount && !custom) || loading"
-            :class="((!amount && !custom) || loading) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-blue-700'"
-            class="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl transition">
-            <i class="fas fa-lock mr-2"></i><span x-text="loading ? 'กำลังดำเนินการ...' : 'ยืนยันชำระเงิน'"></span>
-        </button>
-        <p class="text-xs text-gray-400 mt-3">ข้อมูลบัตรถูกเข้ารหัสส่งตรงไปยังผู้ให้บริการชำระเงิน (Omise/Opn Payments) ไม่ผ่านเซิร์ฟเวอร์ของเรา</p>
-    </form>
-    </div>
-
-    <div x-show="tab==='qr'">
-        <p class="text-sm text-gray-500 mb-2">เลือกจำนวนเงิน</p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            @foreach([300,500,1000,3000] as $preset)
-            <button type="button" @click="amount={{ $preset }}; custom=''"
-                :class="amount==={{ $preset }} ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'"
-                class="border rounded-xl py-3 font-bold transition">฿{{ number_format($preset) }}</button>
-            @endforeach
-        </div>
-        <div class="flex items-center gap-3 mb-6">
-            <span class="text-sm text-gray-500">หรือระบุจำนวนเอง</span>
-            <input type="number" x-model="custom" @input="amount=null" min="20" max="100000" step="1"
-                   placeholder="เช่น 750" class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-40">
-        </div>
-        <form method="POST" action="{{ route('credits.topup.qr.store') }}">
-            @csrf
-            <input type="hidden" name="amount" :value="custom ? custom : amount">
-            <button type="submit" :disabled="!amount && !custom"
-                :class="(!amount && !custom) ? 'opacity-40 cursor-not-allowed' : 'hover:bg-blue-700'"
-                class="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl transition">
-                <i class="fas fa-qrcode mr-2"></i>สร้าง QR ชำระเงิน
-            </button>
-            <p class="text-xs text-gray-400 mt-3">สแกนจ่ายผ่านแอปธนาคารใดก็ได้ที่รองรับพร้อมเพย์ เครดิตจะเข้าอัตโนมัติหลังชำระเงินสำเร็จ</p>
-        </form>
-    </div>
 </div>
-
-@if(session('qrTopup'))
-@php $qr = session('qrTopup'); @endphp
-<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" x-data="{ open: true }" x-show="open">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
-        <p class="font-semibold text-gray-900 mb-1">สแกนจ่ายผ่านพร้อมเพย์</p>
-        <p class="text-sm text-gray-500 mb-4">ยอดชำระ ฿{{ number_format($qr['amount'],2) }}</p>
-        <img src="{{ $qr['image'] }}" alt="PromptPay QR" class="w-56 h-56 mx-auto border border-gray-100 rounded-xl">
-        <p id="qr-status-text" class="text-sm text-gray-500 mt-4">กำลังรอการชำระเงิน...</p>
-        <button @click="open=false" class="mt-4 text-sm text-gray-400 hover:text-gray-600">ปิด</button>
-    </div>
-</div>
-<script>
-(function poll() {
-    fetch('{{ route("credits.topup.qr.status", $qr["id"]) }}').then(r => r.json()).then(d => {
-        if (d.status === 'paid') {
-            document.getElementById('qr-status-text').textContent = 'ชำระเงินสำเร็จ! กำลังโหลดหน้าใหม่...';
-            setTimeout(() => location.reload(), 1200);
-        } else {
-            setTimeout(poll, 3000);
-        }
-    }).catch(() => setTimeout(poll, 3000));
-})();
-</script>
 @endif
 
-<script src="https://cdn.omise.co/omise.js"></script>
-<script>
-Omise.setPublicKey('{{ config('omise.public_key') }}');
-function submitTopup(evt, state) {
-    const root = evt.target.closest('[x-data]');
-    const setError = (msg) => { Alpine.$data(root).error = msg; Alpine.$data(root).loading = false; };
-    if (!state.amount) return;
-    Alpine.$data(root).error = '';
-    Alpine.$data(root).loading = true;
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-1">{{ __('app.topup') }}</h3>
+    <p class="text-sm text-gray-500 mb-6">{{ __('app.topup_flow_intro') }}</p>
 
-    const number = document.getElementById('omise-card-number').value.replace(/\s+/g,'');
-    const name   = document.getElementById('omise-card-name').value;
-    const expiry = document.getElementById('omise-card-expiry').value.split('/');
-    const cvv    = document.getElementById('omise-card-cvv').value;
+    @if($bankAccounts->isEmpty())
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
+            <i class="fas fa-triangle-exclamation mr-2"></i>{{ __('app.no_bank_accounts') }}
+        </div>
+    @else
+    <form method="POST" action="{{ route('credits.topup.store') }}" enctype="multipart/form-data" class="space-y-6">
+        @csrf
 
-    if (!number || !name || expiry.length !== 2 || !cvv) {
-        setError('กรุณากรอกข้อมูลบัตรให้ครบถ้วน');
-        return;
-    }
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">1. {{ __('app.select_bank_account') }}</label>
+            <div class="grid gap-3">
+                @foreach($bankAccounts as $ba)
+                <label class="flex items-start gap-3 border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-blue-400 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 transition">
+                    <input type="radio" name="bank_account_id" value="{{ $ba->id }}" required class="mt-1">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-900">{{ $ba->bank_name }}</p>
+                        <div class="flex items-center gap-2" x-data="{ copied: false }">
+                            <p class="text-sm text-gray-700 font-mono">{{ $ba->account_number }}</p>
+                            <button type="button"
+                                    @click.prevent.stop="navigator.clipboard.writeText('{{ preg_replace('/\D+/', '', $ba->account_number) }}').then(() => { copied = true; setTimeout(() => copied = false, 1500) })"
+                                    :class="copied ? 'text-green-600' : 'text-gray-400 hover:text-blue-600'"
+                                    class="text-xs transition"
+                                    :title="copied ? '{{ __('app.copied') }}' : '{{ __('app.copy_account_number') }}'"
+                                    :aria-label="copied ? '{{ __('app.copied') }}' : '{{ __('app.copy_account_number') }}'">
+                                <i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i>
+                                <span x-show="copied" x-transition class="ml-1">{{ __('app.copied') }}</span>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500">{{ $ba->account_name }}@if($ba->branch) &middot; {{ $ba->branch }}@endif</p>
+                        @if($ba->notes)<p class="text-xs text-gray-400 mt-1">{{ $ba->notes }}</p>@endif
+                    </div>
+                </label>
+                @endforeach
+            </div>
+        </div>
 
-    Omise.createToken('card', {
-        name: name,
-        number: number,
-        expiration_month: expiry[0].trim(),
-        expiration_year: '20' + expiry[1].trim(),
-        security_code: cvv,
-    }, function (statusCode, response) {
-        if (statusCode !== 200) {
-            setError(response.message || 'ข้อมูลบัตรไม่ถูกต้อง');
-            return;
-        }
-        document.getElementById('omise-token').value = response.id;
-        document.getElementById('omise-topup-form').submit();
-    });
-}
-</script>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">2. {{ __('app.amount') }}</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">฿</span>
+                    <input type="number" name="amount" min="1" max="1000000" step="0.01" required value="{{ old('amount') }}"
+                           class="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">3. {{ __('app.transfer_date') }}</label>
+                <input type="date" name="transfer_date" required value="{{ old('transfer_date', now()->toDateString()) }}"
+                       max="{{ now()->toDateString() }}"
+                       class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">4. {{ __('app.transfer_reference') }} <span class="text-red-500">*</span></label>
+            <input type="text" name="transfer_reference" maxlength="100" required value="{{ old('transfer_reference') }}"
+                   placeholder="{{ __('app.transfer_reference_placeholder') }}"
+                   class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono">
+            <p class="text-xs text-gray-500 mt-1">{{ __('app.transfer_reference_hint') }}</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">5. {{ __('app.upload_slip') }} <span class="text-red-500">*</span></label>
+            <input type="file" name="slip" accept="image/jpeg,image/png,image/webp,application/pdf" required
+                   class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 file:font-semibold">
+            <p class="text-xs text-gray-500 mt-1">{{ __('app.slip_hint') }}</p>
+        </div>
+
+        @if($errors->any())
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-800">
+            @foreach($errors->all() as $err)<p><i class="fas fa-circle-exclamation mr-1"></i>{{ $err }}</p>@endforeach
+        </div>
+        @endif
+
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition">
+            <i class="fas fa-paper-plane mr-2"></i>{{ __('app.submit_topup') }}
+        </button>
+        <p class="text-xs text-gray-400 text-center">{{ __('app.approval_time_note') }}</p>
+    </form>
+    @endif
+</div>
 
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <table class="w-full">
         <thead class="bg-gray-50 border-b">
             <tr>
-                <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase">ประเภท</th>
-                <th class="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase">รายละเอียด</th>
-                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">จำนวน</th>
-                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">คงเหลือ</th>
-                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">วันที่</th>
+                <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase">{{ __('app.type') }}</th>
+                <th class="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase">{{ __('app.description') }}</th>
+                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">{{ __('app.amount') }}</th>
+                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">{{ __('app.balance_short') }}</th>
+                <th class="text-right py-4 px-4 text-xs font-semibold text-gray-500 uppercase">{{ __('app.date') }}</th>
                 <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase"></th>
             </tr>
         </thead>
@@ -170,7 +128,7 @@ function submitTopup(evt, state) {
             <tr class="hover:bg-gray-50">
                 <td class="py-4 px-6">
                     <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $tx->type==='topup' ? 'bg-green-100 text-green-800' : ($tx->type==='refund' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') }}">
-                        {{ $tx->type === 'topup' ? 'เติมเครดิต' : ($tx->type==='refund' ? 'คืนเครดิต' : 'ตัดเครดิต') }}
+                        {{ $tx->type === 'topup' ? __('app.tx_topup') : ($tx->type==='refund' ? __('app.tx_refund') : __('app.tx_deduct')) }}
                     </span>
                 </td>
                 <td class="py-4 px-4 text-sm text-gray-600">{{ $tx->description ?? '-' }}</td>
@@ -180,11 +138,11 @@ function submitTopup(evt, state) {
                 <td class="py-4 px-4 text-right text-sm font-semibold text-gray-900">฿{{ number_format($tx->balance_after,2) }}</td>
                 <td class="py-4 px-4 text-right text-xs text-gray-400">{{ $tx->created_at->format('d/m/y H:i') }}</td>
                 <td class="py-4 px-6 text-right">
-                    <a href="{{ route('credits.receipt',$tx) }}" class="text-blue-600 hover:text-blue-800 text-sm" title="ดาวน์โหลดใบเสร็จ"><i class="fas fa-file-pdf"></i></a>
+                    <a href="{{ route('credits.receipt',$tx) }}" class="text-blue-600 hover:text-blue-800 text-sm" title="{{ __('app.download_receipt') }}"><i class="fas fa-file-pdf"></i></a>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="6" class="text-center py-16 text-gray-400">ยังไม่มีรายการ</td></tr>
+            <tr><td colspan="6" class="text-center py-16 text-gray-400">{{ __('app.no_transactions') }}</td></tr>
             @endforelse
         </tbody>
     </table>

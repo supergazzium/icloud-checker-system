@@ -1,181 +1,103 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
-use App\Models\{CreditTransaction, Topup};
-use App\Services\OmiseService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+
+use App\Models\{BankAccount, CreditTransaction, Topup};
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
-class CreditController extends Controller {
-    public function __construct(private OmiseService $omise) {}
-
-    public function index() {
+class CreditController extends Controller
+{
+    public function index()
+    {
         $transactions = CreditTransaction::where('user_id', auth()->id())
             ->latest('created_at')->paginate(30);
-        $pendingTopup = Topup::where('user_id', auth()->id())->where('status','pending')->latest()->first();
-        return view('credits.index', compact('transactions','pendingTopup'));
+
+        $pendingTopups = Topup::where('user_id', auth()->id())
+            ->where('status', 'pending_review')
+            ->latest('created_at')->get();
+
+        $bankAccounts = BankAccount::active()->get();
+
+        return view('credits.index', compact('transactions', 'pendingTopups', 'bankAccounts'));
     }
 
-    /** Charge a tokenized card (Omise.js). Redirects to 3-D Secure page if required. */
-    public function topupStore(Request $request) {
-        $request->validate([
-            'amount'      => 'required|numeric|min:100|max:100000',
-            'omise_token' => 'required|string',
+    public function topupStore(Request $request)
+    {
+        $validated = $request->validate([
+            'amount'             => 'required|numeric|min:1|max:1000000',
+            'bank_account_id'    => 'required|integer|exists:bank_accounts,id',
+            'transfer_reference' => 'required|string|max:100',
+            'transfer_date'      => 'required|date|before_or_equal:today',
+            'slip'               => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
         ]);
 
-        if (!config('omise.secret_key')) {
-            return back()->with('error', 'ระบบยังไม่ได้ตั้งค่าคีย์ Omise กรุณาติดต่อผู้ดูแลระบบ');
+        // Only accept transfers to active accounts.
+        $account = BankAccount::active()->findOrFail($validated['bank_account_id']);
+
+        // Duplicate-submission guard: same reference + same bank account within
+        // the last 7 days from any user usually means an accidental double-submit.
+        $duplicate = Topup::where('bank_account_id', $account->id)
+            ->where('transfer_reference', $validated['transfer_reference'])
+            ->where('created_at', '>=', now()->subDays(7))
+            ->whereIn('status', ['pending_review', 'approved', 'paid'])
+            ->exists();
+        if ($duplicate) {
+            return back()->withInput()->with(
+                'error',
+                'เลขที่อ้างอิงนี้ถูกใช้ไปแล้วภายใน 7 วันที่ผ่านมา หากคุณโอนซ้ำจริง กรุณาติดต่อผู้ดูแลระบบ'
+            );
         }
+
+        $path = $request->file('slip')->storeAs(
+            'topup-slips/'.auth()->id(),
+            (string) Str::uuid().'.'.$request->file('slip')->getClientOriginalExtension(),
+            'public'
+        );
 
         $topup = Topup::create([
-            'user_id' => auth()->id(),
-            'amount'  => $request->amount,
-            'status'  => 'pending',
+            'user_id'            => auth()->id(),
+            'bank_account_id'    => $account->id,
+            'amount'             => $validated['amount'],
+            'status'             => 'pending_review',
+            'slip_path'          => $path,
+            'slip_uploaded_at'   => now(),
+            'transfer_reference' => $validated['transfer_reference'],
+            'transfer_date'      => $validated['transfer_date'],
         ]);
 
-        $returnUri = route('credits.topup.return', $topup);
-        $result = $this->omise->createCharge($request->amount, $request->omise_token, $returnUri, 'เติมเครดิต iPart Store #'.$topup->id);
-
-        if (!$result['success']) {
-            $topup->update(['status' => 'failed']);
-            return back()->with('error', 'ไม่สามารถทำรายการชำระเงินได้: '.($result['error'] ?? 'unknown error'));
-        }
-
-        $charge = $result['data'];
-        $topup->update(['charge_id' => $charge['id']]);
-
-        if (($charge['status'] ?? null) === 'successful') {
-            $this->markPaid($topup, $charge['id']);
-            return redirect()->route('credits.index')->with('success', 'เติมเครดิตสำเร็จแล้ว');
-        }
-
-        if (!empty($charge['authorize_uri'])) {
-            return redirect()->away($charge['authorize_uri']);
-        }
-
-        $topup->update(['status' => 'failed']);
-        return back()->with('error', 'การชำระเงินไม่สำเร็จ: '.($charge['failure_message'] ?? 'ถูกปฏิเสธโดยธนาคาร'));
+        return redirect()
+            ->route('credits.topup.show', $topup)
+            ->with('success', 'ส่งคำขอเติมเครดิตแล้ว รอผู้ดูแลระบบตรวจสอบ');
     }
 
-    /** Return URL after 3-D Secure authorization. */
-    public function topupReturn(Topup $topup) {
+    public function topupShow(Topup $topup)
+    {
         abort_unless($topup->user_id === auth()->id(), 403);
-
-        if ($topup->status === 'paid') {
-            return redirect()->route('credits.index')->with('success', 'เติมเครดิตสำเร็จแล้ว');
-        }
-
-        $result = $this->omise->getCharge($topup->charge_id);
-        if ($result['success'] && ($result['data']['status'] ?? null) === 'successful') {
-            $this->markPaid($topup, $topup->charge_id);
-            return redirect()->route('credits.index')->with('success', 'เติมเครดิตสำเร็จแล้ว');
-        }
-
-        $topup->update(['status' => 'failed']);
-        return redirect()->route('credits.index')->with('error', 'การชำระเงินไม่สำเร็จหรือถูกยกเลิก');
+        $topup->load('bankAccount', 'reviewer');
+        return view('credits.topup-show', compact('topup'));
     }
 
-    /** Create a PromptPay QR charge and show the QR to the user. */
-    public function topupQrStore(Request $request) {
-        $request->validate(['amount' => 'required|numeric|min:20|max:100000']);
+    /** Gated slip download — owner OR admin only. */
+    public function topupSlip(Topup $topup): Response
+    {
+        $user = auth()->user();
+        abort_unless($topup->user_id === $user->id || $user->isAdmin(), 403);
+        abort_unless($topup->slip_path && Storage::disk('public')->exists($topup->slip_path), 404);
 
-        if (!config('omise.secret_key')) {
-            return back()->with('error', 'ระบบยังไม่ได้ตั้งค่าคีย์ Omise กรุณาติดต่อผู้ดูแลระบบ');
-        }
-
-        $topup = Topup::create(['user_id' => auth()->id(), 'amount' => $request->amount, 'status' => 'pending']);
-
-        $result = $this->omise->createPromptPayCharge($request->amount, 'เติมเครดิต iPart Store #'.$topup->id);
-        if (!$result['success']) {
-            $topup->update(['status' => 'failed']);
-            return back()->with('error', 'ไม่สามารถสร้าง QR ได้: '.($result['error'] ?? 'unknown error'));
-        }
-
-        $charge = $result['data'];
-        $topup->update(['charge_id' => $charge['id']]);
-
-        $qrImage = $charge['source']['scannable_code']['image']['download_uri'] ?? null;
-        if (!$qrImage) {
-            $topup->update(['status' => 'failed']);
-            return back()->with('error', 'ไม่พบ QR Code จากผู้ให้บริการ');
-        }
-
-        return redirect()->route('credits.index')->with('qrTopup', ['id' => $topup->id, 'image' => $qrImage, 'amount' => $topup->amount]);
+        return Storage::disk('public')->response($topup->slip_path);
     }
 
-    /** Polled by the QR page via JS to detect payment completion. */
-    public function topupQrStatus(Topup $topup) {
-        abort_unless($topup->user_id === auth()->id(), 403);
-
-        if ($topup->status === 'paid') {
-            return response()->json(['status' => 'paid']);
-        }
-
-        $result = $this->omise->getCharge($topup->charge_id);
-        if ($result['success'] && ($result['data']['status'] ?? null) === 'successful') {
-            $this->markPaid($topup, $topup->charge_id);
-            return response()->json(['status' => 'paid']);
-        }
-
-        return response()->json(['status' => $topup->status]);
-    }
-
-    /** Downloadable PDF receipt for one credit transaction (own transactions only). */
-    public function receipt(CreditTransaction $transaction) {
+    public function receipt(CreditTransaction $transaction)
+    {
         abort_unless($transaction->user_id === auth()->id(), 403);
         $pdf = Pdf::loadView('credits.receipt', ['tx' => $transaction, 'user' => auth()->user()])
             ->setPaper('a5');
         return $pdf->download('receipt-'.$transaction->id.'.pdf');
-    }
-
-    /** Manual re-check (kept for the "ตรวจสอบสถานะ" button). */
-    public function topupCheck(Topup $topup) {
-        return $this->topupReturn($topup);
-    }
-
-    /** Omise webhook: POST from Omise servers. Omise has no HMAC signature, so we never trust
-     *  the payload directly — re-fetch the charge from the API (server-to-server, secret-key
-     *  authenticated) and only credit based on that verified response. */
-    public function webhook(Request $request) {
-        $event    = $request->input('key');
-        $chargeId = $request->input('data.id');
-
-        if ($event === 'charge.complete' && $chargeId) {
-            $result = $this->omise->getCharge($chargeId);
-            if ($result['success'] && ($result['data']['status'] ?? null) === 'successful') {
-                $topup = Topup::where('charge_id', $chargeId)->first();
-                if ($topup && $topup->status === 'pending') {
-                    $this->markPaid($topup, $chargeId);
-                }
-            }
-        }
-
-        Log::info('Omise webhook received', ['key' => $event, 'charge_id' => $chargeId]);
-        return response()->json(['received' => true]);
-    }
-
-    private function markPaid(Topup $topup, string $chargeId): void {
-        DB::transaction(function () use ($topup, $chargeId) {
-            $topup->refresh();
-            if ($topup->status === 'paid') return;
-
-            $user = $topup->user;
-            $balanceBefore = $user->balance;
-            $user->increment('balance', $topup->amount);
-            $user->refresh();
-
-            $user->creditTransactions()->create([
-                'type' => 'topup', 'amount' => $topup->amount,
-                'balance_before' => $balanceBefore, 'balance_after' => $user->balance,
-                'description' => 'เติมเครดิตผ่านบัตรเครดิต (Omise) #'.$topup->id,
-            ]);
-
-            $topup->update(['status' => 'paid', 'charge_id' => $chargeId]);
-
-            if ($user->email) {
-                \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\TopupSuccessMail($topup->fresh(['user'])));
-            }
-        });
     }
 }

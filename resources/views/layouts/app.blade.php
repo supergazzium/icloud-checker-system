@@ -67,9 +67,18 @@
             <a href="{{ route('credits.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('credits.*') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
                 <i class="fas fa-coins w-5"></i>{{ __('app.credits') }}</a>
             @if(auth()->user()->isAdmin())
+            @php $pendingTopupCount = \App\Models\Topup::where('status','pending_review')->count(); @endphp
             <p class="text-xs font-semibold text-gray-400 uppercase px-1 pt-4 pb-1">Admin</p>
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
                 <i class="fas fa-tachometer-alt w-5"></i>Admin Dashboard</a>
+            <a href="{{ route('admin.topups.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('admin.topups.*') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
+                <i class="fas fa-money-bill-transfer w-5"></i><span class="flex-1">{{ __('app.topup_review') }}</span>
+                @if($pendingTopupCount > 0)
+                    <span class="bg-yellow-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[1.5rem] text-center">{{ $pendingTopupCount }}</span>
+                @endif
+            </a>
+            <a href="{{ route('admin.bank-accounts.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('admin.bank-accounts.*') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
+                <i class="fas fa-building-columns w-5"></i>{{ __('app.bank_accounts') }}</a>
             <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('admin.users.*') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
                 <i class="fas fa-users w-5"></i>{{ __('app.users') }}</a>
             <a href="{{ route('admin.services.index') }}" class="flex items-center gap-3 px-4 py-2.5 rounded-lg {{ request()->routeIs('admin.services.*') ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600' }} transition">
