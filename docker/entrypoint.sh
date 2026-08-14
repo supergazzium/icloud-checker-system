@@ -20,13 +20,33 @@ mkdir -p \
 chown -R app:app storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 
-# APP_KEY is required. Generate an ephemeral one if missing so first boot doesn't
-# crash, but log loudly — production should provide a stable key via env.
-if [ -z "${APP_KEY:-}" ]; then
-    echo "[entrypoint] WARNING: APP_KEY is empty. Generating an ephemeral key."
-    echo "[entrypoint]          Set APP_KEY in Coolify to keep sessions across deploys."
-    APP_KEY="$(php -r 'echo "base64:".base64_encode(random_bytes(32));')"
-    export APP_KEY
+# Normalize APP_ENV / APP_DEBUG for the safety gates below.
+APP_ENV_LC="$(printf '%s' "${APP_ENV:-production}" | tr '[:upper:]' '[:lower:]')"
+APP_DEBUG_LC="$(printf '%s' "${APP_DEBUG:-false}" | tr '[:upper:]' '[:lower:]')"
+
+# Production safety gates. These MUST hard-fail rather than paper over
+# misconfiguration — an ephemeral APP_KEY silently breaks sessions/encryption
+# across deploys, and APP_DEBUG=true in production leaks stack traces + env.
+if [ "$APP_ENV_LC" = "production" ]; then
+    if [ -z "${APP_KEY:-}" ]; then
+        echo "[entrypoint] FATAL: APP_ENV=production but APP_KEY is empty."
+        echo "[entrypoint]        Generate one with 'php artisan key:generate --show'"
+        echo "[entrypoint]        and set APP_KEY in the Coolify environment. Refusing to start."
+        exit 1
+    fi
+    if [ "$APP_DEBUG_LC" = "true" ] || [ "$APP_DEBUG_LC" = "1" ]; then
+        echo "[entrypoint] FATAL: APP_ENV=production with APP_DEBUG=${APP_DEBUG}."
+        echo "[entrypoint]        Debug mode leaks stack traces and env vars in production."
+        echo "[entrypoint]        Set APP_DEBUG=false and redeploy. Refusing to start."
+        exit 1
+    fi
+else
+    # Non-production: keep the old ephemeral-key convenience for local/dev.
+    if [ -z "${APP_KEY:-}" ]; then
+        echo "[entrypoint] WARNING: APP_KEY is empty. Generating an ephemeral key for APP_ENV=${APP_ENV:-unset}."
+        APP_KEY="$(php -r 'echo "base64:".base64_encode(random_bytes(32));')"
+        export APP_KEY
+    fi
 fi
 
 # Wait for the database when DB_HOST is a networked host (skip for sqlite)
@@ -107,6 +127,14 @@ if [ "${RUN_SCHEMA_BOOTSTRAP:-true}" = "true" ] \
     else
         echo "[entrypoint] Schema already present — skipping SQL bootstrap."
     fi
+fi
+
+# Provision or update the initial admin from ADMIN_* env vars. Idempotent:
+# skips if the admin row already exists. Prints a generated password ONCE
+# when ADMIN_PASSWORD is empty — copy it from the deploy logs.
+if [ "${RUN_ADMIN_ENSURE:-true}" = "true" ]; then
+    php artisan admin:ensure || \
+        echo "[entrypoint] admin:ensure failed — continuing so the app can still serve."
 fi
 
 # Cache config / routes / views / events for production

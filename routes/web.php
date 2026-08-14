@@ -13,7 +13,7 @@ require __DIR__.'/auth.php';
 Route::get('/auth/{provider}/redirect', [\App\Http\Controllers\SocialAuthController::class, 'redirect'])->name('social.redirect');
 Route::get('/auth/{provider}/callback', [\App\Http\Controllers\SocialAuthController::class, 'callback'])->name('social.callback');
 
-Route::middleware(['auth','active.user','set.locale'])->group(function () {
+Route::middleware(['auth','active.user','set.locale','password.change'])->group(function () {
     Route::get('/',         [DashboardController::class,'index'])->name('dashboard');
     Route::get('/check',    [CheckController::class,'index'])->name('check.index');
     Route::post('/check',   [CheckController::class,'store'])->middleware('throttle:10,1')->name('check.store');
@@ -34,7 +34,7 @@ Route::middleware(['auth','active.user','set.locale'])->group(function () {
     Route::delete('/profile/sessions/{sessionId}', [\App\Http\Controllers\ProfileController::class, 'destroySession'])->name('profile.sessions.destroy');
 });
 
-Route::middleware(['auth','admin','set.locale','2fa'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth','admin','set.locale','password.change','2fa'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/2fa', [\App\Http\Controllers\Admin\TwoFactorController::class,'show'])->name('2fa.show');
     Route::post('/2fa/enable', [\App\Http\Controllers\Admin\TwoFactorController::class,'enable'])->name('2fa.enable');
     Route::delete('/2fa', [\App\Http\Controllers\Admin\TwoFactorController::class,'disable'])->name('2fa.disable');

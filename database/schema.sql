@@ -17,6 +17,7 @@ CREATE TABLE users (
     two_factor_secret       VARCHAR(255) NULL,
     two_factor_enabled      TINYINT(1) DEFAULT 0,
     two_factor_recovery_codes TEXT NULL,
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     remember_token    VARCHAR(100) NULL,
     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -115,11 +116,12 @@ CREATE TABLE sessions (
     INDEX (last_activity)
 );
 
--- Seed: Admin user (password: admin1234) — CHANGE THIS AFTER FIRST LOGIN
-INSERT INTO users (name, email, password, role, balance, locale) VALUES
-('Admin', 'admin@icloudchecker.com',
- '$2y$12$FtdU8do3CEDxFIU31HWr7u62Fqi377/tEAHEK5A6EF4rr1VUbTA1e',
- 'admin', 0.00, 'th');
+-- Admin user is provisioned at container start by `php artisan admin:ensure`
+-- (see docker/entrypoint.sh). That command reads ADMIN_EMAIL / ADMIN_NAME /
+-- ADMIN_PASSWORD from the environment. When ADMIN_PASSWORD is empty a strong
+-- random password is generated and printed ONCE to stdout — copy it from the
+-- deploy logs. The admin row is flagged must_change_password=1 so first login
+-- forces the operator to set a new password.
 
 -- Seed: Default Services
 INSERT INTO services (name_th, name_en, description_th, description_en, provider_service_id, device_type, cost_price, sell_price, processing_time, supports_serial, active, sort_order) VALUES
