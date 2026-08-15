@@ -12,7 +12,10 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Latin + Thai in one stack. Noto Sans and Noto Sans Thai
+                // Looped are designed as siblings — same weights, same
+                // proportions — so bilingual UIs stay visually consistent.
+                sans: ['"Noto Sans"', '"Noto Sans Thai Looped"', ...defaultTheme.fontFamily.sans],
             },
         },
     },

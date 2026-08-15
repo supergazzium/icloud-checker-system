@@ -20,7 +20,37 @@
             window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
         }
     </script>
+    {{-- Fonts: Noto Sans (Latin) + Noto Sans Thai Looped (Thai) pair cleanly
+         at the same weights so bilingual UIs don't jump between scripts. --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Thai+Looped:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans"', '"Noto Sans Thai Looped"',
+                               'ui-sans-serif', 'system-ui', '-apple-system',
+                               '"Segoe UI"', 'Roboto', '"Helvetica Neue"',
+                               'Arial', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        /* Thai text has taller ascenders/descenders (tone marks over vowels
+           over consonants). The default line-height Tailwind ships is tuned
+           for Latin — bump it site-wide so Thai lines don't overlap. */
+        body { line-height: 1.6; }
+        /* Ensure the font-family cascade actually applies even before
+           Tailwind's utility classes hit (the CDN loads async). */
+        html { font-family: 'Noto Sans', 'Noto Sans Thai Looped', ui-sans-serif, system-ui, sans-serif; }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
