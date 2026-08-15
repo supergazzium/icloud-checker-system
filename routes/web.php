@@ -1,6 +1,6 @@
 <?php
 use App\Http\Controllers\{DashboardController, CheckController, OrderController, CreditController, LanguageController};
-use App\Http\Controllers\Admin\{AdminDashboardController, AdminUserController, AdminServiceController, AdminOrderController, AdminSettingController, AdminBankAccountController, AdminTopupController};
+use App\Http\Controllers\Admin\{AdminDashboardController, AdminUserController, AdminServiceController, AdminServiceImportController, AdminOrderController, AdminSettingController, AdminBankAccountController, AdminTopupController};
 use Illuminate\Support\Facades\Route;
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
@@ -43,6 +43,10 @@ Route::middleware(['auth','admin','set.locale','password.change','2fa'])->prefix
     Route::post('/users/{user}/toggle-active',    [AdminUserController::class,'toggleActive'])->name('users.toggleActive');
     Route::get('/services',                       [AdminServiceController::class,'index'])->name('services.index');
     Route::post('/services',                      [AdminServiceController::class,'store'])->name('services.store');
+    // Importer routes MUST come before the {service} routes so the
+    // route matcher doesn't treat "import" as a Service model binding.
+    Route::get('/services/import',                [AdminServiceImportController::class,'index'])->name('services.import.index');
+    Route::post('/services/import',               [AdminServiceImportController::class,'sync'])->name('services.import.sync');
     Route::put('/services/{service}',             [AdminServiceController::class,'update'])->name('services.update');
     Route::post('/services/{service}/toggle',     [AdminServiceController::class,'toggleActive'])->name('services.toggle');
     Route::get('/orders',                         [AdminOrderController::class,'index'])->name('orders.index');

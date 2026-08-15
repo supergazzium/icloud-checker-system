@@ -135,7 +135,7 @@ if [ "${RUN_SCHEMA_BOOTSTRAP:-true}" = "true" ] \
     # Idempotent migrations: always run, even on existing databases.
     # These files use `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
     # patterns and safely no-op when their changes are already applied.
-    for sql in database/bank_transfer_migration.sql; do
+    for sql in database/bank_transfer_migration.sql database/services_importer_migration.sql; do
         [ -f "$sql" ] || continue
         echo "[entrypoint] Applying idempotent migration $sql ..."
         import_sql "$sql" || echo "[entrypoint] Migration $sql reported errors — continuing."

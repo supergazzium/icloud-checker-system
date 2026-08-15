@@ -3,10 +3,16 @@
 @section('content')
 <div class="flex items-center justify-between mb-8">
     <h2 class="text-2xl font-bold text-gray-900">{{ __('app.services') }}</h2>
-    <button onclick="document.getElementById('addServiceModal').classList.remove('hidden')"
-        class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
-        <i class="fas fa-plus mr-2"></i>เพิ่มบริการ
-    </button>
+    <div class="flex gap-2">
+        <a href="{{ route('admin.services.import.index') }}"
+           class="bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 px-5 py-2.5 rounded-xl font-semibold transition">
+            <i class="fas fa-download mr-2"></i>{{ __('app.import_from_provider') }}
+        </a>
+        <button onclick="document.getElementById('addServiceModal').classList.remove('hidden')"
+            class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
+            <i class="fas fa-plus mr-2"></i>เพิ่มบริการ
+        </button>
+    </div>
 </div>
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <table class="w-full">
