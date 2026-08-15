@@ -91,6 +91,14 @@
     <div class="bg-white border border-gray-200 rounded-2xl mt-4 shadow-sm overflow-hidden">
         <div class="flex flex-col items-center gap-4 px-6 py-8 border-b border-gray-100">
             <div style="height:150px;display:flex;align-items:center;justify-content:center;">
+                @if($order->result_thumbnail)
+                    {{-- Apple product image from provider. Falls back to
+                         geometric illustration on load error. --}}
+                    <img src="{{ $order->result_thumbnail }}" alt="{{ $order->result_model }}"
+                         style="max-height:150px;max-width:220px;filter:drop-shadow(3px 3px 6px rgba(0,0,0,0.15));"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display:none;">
+                @endif
                 @if($isLaptop)
                 <div style="width:200px;">
                     <div style="width:100%;height:108px;background:#1e293b;border-radius:9px 9px 3px 3px;padding:5px;box-sizing:border-box;">
@@ -108,6 +116,9 @@
                         <div style="position:absolute;top:7px;left:50%;transform:translateX(-50%);width:24px;height:5px;background:#0f172a;border-radius:99px;"></div>
                     </div>
                 </div>
+                @endif
+                @if($order->result_thumbnail)
+                    </div>
                 @endif
             </div>
             <div class="text-center">
@@ -136,48 +147,98 @@
                 foreach ($badWords as $w) if (str_contains($v, $w)) return 'red';
                 return 'green';
             };
+            // Determine which unit-state flags are worth showing. A "clean"
+            // unit (all No) has nothing interesting here so we skip the
+            // whole section. Any Yes / positive flag surfaces the group.
+            $unitFlags = array_filter([
+                'replaced'     => $order->result_replaced,
+                'replacement'  => $order->result_replacement,
+                'refurbished'  => $order->result_refurbished,
+                'demo_unit'    => $order->result_demo_unit,
+                'loaner'       => $order->result_loaner,
+            ], fn ($v) => in_array(strtolower(trim((string) $v)), ['yes','true','1'], true));
+
             $groups = [
                 [
                     'title' => app()->getLocale()==='th' ? 'ข้อมูลเครื่อง' : 'Hardware',
                     'rows' => [
                         ['t', __('order.model'),         $order->result_model],
+                        ['t', __('order.model_desc'),    $order->result_model_desc],
                         ['t', __('order.color'),         $order->result_color],
                         ['t', __('order.storage'),       $order->result_storage],
                         ['t', __('order.region'),        $order->result_region],
                         ['m', __('order.imei_serial'),   $order->result_serial ?? $order->result_imei ?? $order->imei_serial],
+                        ['m', __('order.imei2'),         $order->result_imei2],
                         ['t', __('order.service'),       $order->service->name ?? null],
                     ],
                 ],
                 [
-                    'title' => app()->getLocale()==='th' ? 'ประกัน & สถานะเครื่อง' : 'Warranty & Device Status',
+                    'title' => app()->getLocale()==='th' ? 'รหัสรุ่น & ที่มา' : 'Product Identity',
                     'rows' => [
-                        ['p', __('order.warranty'),      $order->result_warranty],
-                        ['t', __('order.purchase_date'), $order->result_purchase_date],
+                        ['m', __('order.part_number'),      $order->result_part_number],
+                        ['t', __('order.part_country'),     $order->result_part_country],
+                        ['t', __('order.part_type'),        $order->result_part_type],
+                        ['t', __('order.purchase_country'), $order->result_purchase_country],
+                    ],
+                ],
+                [
+                    'title' => app()->getLocale()==='th' ? 'ประกัน & บริการ' : 'Warranty & Coverage',
+                    'rows' => [
+                        ['p', __('order.warranty'),          $order->result_warranty],
+                        ['t', __('order.purchase_date'),     $order->result_purchase_date],
+                        ['t', __('order.coverage_end_date'), $order->result_coverage_end_date],
+                        ['p', __('order.technical_support'), $order->result_technical_support],
+                        ['p', __('order.repair_coverage'),   $order->result_repair_coverage],
+                        ['p', __('order.ac_eligible'),       $order->result_ac_eligible],
+                    ],
+                ],
+                [
+                    'title' => app()->getLocale()==='th' ? 'สถานะการล็อค & Blacklist' : 'Lock & Blacklist Status',
+                    'rows' => [
                         ['p', __('order.fmi_status'),    $order->result_fmi],
                         ['p', __('order.activation'),    $order->result_activation],
                         ['p', __('order.mdm'),           $order->result_mdm],
                         ['p', __('order.blacklist'),     $order->result_blacklist],
                         ['p', __('order.simlock'),       $order->result_simlock],
-                        ['p', __('order.replaced'),      $order->result_replaced],
+                        ['t', __('order.carrier'),       $order->result_carrier],
                     ],
                 ],
             ];
+
+            // Only add the unit-state group when at least one flag is Yes.
+            if ($unitFlags !== []) {
+                $groups[] = [
+                    'title' => app()->getLocale()==='th' ? 'สถานะพิเศษของเครื่อง' : 'Unit State',
+                    'rows' => [
+                        ['p', __('order.replaced'),    $order->result_replaced],
+                        ['p', __('order.replacement'), $order->result_replacement],
+                        ['p', __('order.refurbished'), $order->result_refurbished],
+                        ['p', __('order.demo_unit'),   $order->result_demo_unit],
+                        ['p', __('order.loaner'),      $order->result_loaner],
+                    ],
+                ];
+            }
         @endphp
 
         @foreach($groups as $g)
+        {{-- Skip groups where every row is null — reduces noise for
+             services that only return a subset of fields. --}}
+        @continue(! collect($g['rows'])->contains(fn ($r) => filled($r[2])))
         <p class="px-6 pt-5 pb-1 text-center text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ $g['title'] }}</p>
         <div class="px-6 pb-4 max-w-md mx-auto">
             @foreach($g['rows'] as [$type, $label, $val])
-            <div class="flex items-center justify-center gap-2 py-2.5 border-b border-gray-100 text-center">
-                <span class="text-sm text-gray-500">{{ $label }}:</span>
-                @if($type === 'p' && $val)
-                    <span class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap {{ $pillClass[$pillKind($val)] }}">{{ $val }}</span>
-                @elseif($type === 'm')
-                    <span class="text-sm font-bold font-mono text-gray-900">{{ $val ?: '—' }}</span>
-                @else
-                    <span class="text-sm font-bold text-gray-900">{{ $val ?: '—' }}</span>
+                @if(filled($val))
+                <div class="flex items-center justify-center gap-2 py-2.5 border-b border-gray-100 text-center">
+                    <span class="text-sm text-gray-500">{{ $label }}:</span>
+                    @if($type === 'p')
+                        <span class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap {{ $pillClass[$pillKind($val)] }}">{{ $val }}</span>
+                    @elseif($type === 'm')
+                        <span class="text-sm font-bold font-mono text-gray-900">{{ $val }}</span>
+                    @else
+                        <span class="text-sm font-bold text-gray-900">{{ $val }}</span>
+                    @endif
+                </div>
                 @endif
-            </div>
             @endforeach
         </div>
         @endforeach

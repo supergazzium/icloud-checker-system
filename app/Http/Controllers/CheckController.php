@@ -209,24 +209,48 @@ class CheckController extends Controller
         if ($result['success']) {
             $p = $result['parsed'];
             $order->update([
-                'status'               => 'success',
-                'result_model'         => $p['model'],
-                'result_serial'        => $p['serial'],
-                'result_imei'          => $p['imei'],
-                'result_color'         => $p['color'],
-                'result_storage'       => $p['storage'],
-                'result_region'        => $p['region'],
-                'result_fmi'           => $p['fmi_status'],
-                'result_activation'    => $p['activation_status'],
-                'result_blacklist'     => $p['blacklist_status'],
-                'result_simlock'       => $p['simlock_status'],
-                'result_mdm'           => $p['mdm_status'],
-                'result_warranty'      => $p['warranty'],
-                'result_purchase_date' => $p['purchase_date'],
-                'result_replaced'      => $p['replaced_status'],
-                'response_text'        => $result['response'],
-                'raw_response'         => $result['raw'],
-                'processed_at'         => now(),
+                'status'                    => 'success',
+                // Identity
+                'result_model'              => $p['model']          ?? null,
+                'result_model_desc'         => $p['model_desc']     ?? null,
+                'result_part_number'        => $p['part_number']    ?? null,
+                'result_part_country'       => $p['part_country']   ?? null,
+                'result_part_type'          => $p['part_type']      ?? null,
+                'result_thumbnail'          => $p['thumbnail']      ?? null,
+                // Identifiers
+                'result_serial'             => $p['serial']         ?? null,
+                'result_imei'               => $p['imei']           ?? null,
+                'result_imei2'              => $p['imei2']          ?? null,
+                // Hardware
+                'result_color'              => $p['color']          ?? null,
+                'result_storage'            => $p['storage']        ?? null,
+                'result_region'             => $p['region']         ?? null,
+                // Security
+                'result_fmi'                => $p['fmi_status']     ?? null,
+                'result_activation'         => $p['activation_status'] ?? null,
+                'result_blacklist'          => $p['blacklist_status']  ?? null,
+                'result_simlock'            => $p['simlock_status']    ?? null,
+                'result_carrier'            => $p['carrier']        ?? null,
+                'result_mdm'                => $p['mdm_status']     ?? null,
+                // Warranty
+                'result_warranty'           => $p['warranty']            ?? null,
+                'result_coverage_end_date'  => $p['coverage_end_date']   ?? null,
+                'result_ac_eligible'        => $p['ac_eligible']         ?? null,
+                'result_technical_support'  => $p['technical_support']   ?? null,
+                'result_repair_coverage'    => $p['repair_coverage']     ?? null,
+                // Purchase
+                'result_purchase_date'      => $p['purchase_date']      ?? null,
+                'result_purchase_country'   => $p['purchase_country']   ?? null,
+                // Unit state
+                'result_replaced'           => $p['replaced_status'] ?? null,
+                'result_replacement'        => $p['replacement']     ?? null,
+                'result_refurbished'        => $p['refurbished']     ?? null,
+                'result_demo_unit'          => $p['demo_unit']       ?? null,
+                'result_loaner'             => $p['loaner']          ?? null,
+                // Raw
+                'response_text'             => $result['response'],
+                'raw_response'              => $result['raw'],
+                'processed_at'              => now(),
             ]);
             return $order;
         }

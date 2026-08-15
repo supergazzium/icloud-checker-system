@@ -62,27 +62,57 @@ class IFreeICloudService
     {
         if (!$obj) return [];
         return [
-            'model'           => $this->pick($obj, ['model','Model']),
-            'serial'          => $this->pick($obj, ['serial','serialNumber']),
-            'imei'            => $this->pick($obj, ['imei','imei2','IMEI']),
-            'color'           => $this->pick($obj, ['color','Color','colour']),
-            'storage'         => $this->pick($obj, ['storage','capacity','Capacity']),
-            'region'          => $this->pick($obj, ['region','country','Country']),
-            'fmi_status'      => $this->pickBool($obj, ['fmiOn','fmi','findmy','FindMy','icloud','iCloud','find_my'], 'ON', 'OFF'),
-            'activation_status' => $this->pickBool($obj, ['activated','activation','activationStatus','ActivationStatus'], 'Activated', 'Not Activated'),
+            // --- product identity ---
+            'model'            => $this->pick($obj, ['model','Model']),
+            'model_desc'       => $this->pick($obj, ['modelDesc','modelDescription','ModelDesc']),
+            'part_number'      => $this->pick($obj, ['partNumber','PartNumber','part_no']),
+            'part_country'     => $this->pick($obj, ['partCountry','PartCountry']),
+            'part_type'        => $this->pick($obj, ['partType','PartType']),
+            'thumbnail'        => $this->pick($obj, ['thumbnail','imageUrl','image_url']),
+
+            // --- identifiers ---
+            'serial'           => $this->pick($obj, ['serial','serialNumber']),
+            // imei: prefer imei, fall back to imei2. Store both separately.
+            'imei'             => $this->pick($obj, ['imei','IMEI']),
+            'imei2'            => $this->pick($obj, ['imei2','IMEI2']),
+
+            // --- hardware attributes ---
+            'color'            => $this->pick($obj, ['color','Color','colour']),
+            'storage'          => $this->pick($obj, ['storage','capacity','Capacity']),
+            // region uses `country` on GSX; keep original label for continuity.
+            'region'           => $this->pick($obj, ['region','country','Country']),
+
+            // --- lock / security ---
+            'fmi_status'       => $this->pickBool($obj, ['fmiOn','fmi','findmy','FindMy','icloud','iCloud','find_my'], 'ON', 'OFF'),
+            'activation_status'=> $this->pickBool($obj, ['activated','activation','activationStatus','ActivationStatus'], 'Activated', 'Not Activated'),
             // Provider uses `lostMode` on Apple GSX-style responses. Older
             // aliases kept for other services.
             'blacklist_status' => $this->pickBool($obj, ['lostMode','blacklistStatus','blacklist','Blacklist','gsma','lost','stolen'], 'Blacklisted', 'Clean'),
             // Fall back to carrier ONLY when there's no simlock field at all;
             // empty string means "not applicable" (Mac WiFi-only) and should
             // stay empty, not surface as carrier name.
-            'simlock_status'  => $this->pick($obj, ['simLock','simlock','sim_lock','SimLock','simlockStatus']) ?? $this->pick($obj, ['carrier']),
+            'simlock_status'   => $this->pick($obj, ['simLock','simlock','sim_lock','SimLock','simlockStatus']) ?? $this->pick($obj, ['carrier']),
             // Provider uses `mdmLock` on Apple responses.
-            'mdm_status'      => $this->pickBool($obj, ['mdmLock','mdm','MDM','remoteManagement'], 'Enrolled', 'Not Enrolled'),
-            'replaced_status' => $this->pickBool($obj, ['replaced','Replaced'], 'Yes', 'No'),
-            'warranty'        => $this->pick($obj, ['warrantyStatus','warranty','Warranty']),
-            'purchase_date'   => $this->pick($obj, ['estPurchaseDate','purchase_date','purchaseDate','soldDate']),
-            'carrier'         => $this->pick($obj, ['carrier','network','Network','networkCarrier']),
+            'mdm_status'       => $this->pickBool($obj, ['mdmLock','mdm','MDM','remoteManagement'], 'Enrolled', 'Not Enrolled'),
+            'carrier'          => $this->pick($obj, ['carrier','network','Network','networkCarrier']),
+
+            // --- warranty / coverage ---
+            'warranty'                => $this->pick($obj, ['warrantyStatus','warranty','Warranty']),
+            'coverage_end_date'       => $this->pick($obj, ['coverageEndDate','CoverageEndDate']),
+            'ac_eligible'             => $this->pickBool($obj, ['acEligible','ACEligible','appleCareEligible'], 'Eligible', 'Not Eligible'),
+            'technical_support'       => $this->pickBool($obj, ['technicalSupport','TechnicalSupport'], 'Active', 'Expired'),
+            'repair_coverage'         => $this->pickBool($obj, ['repairCoverage','RepairCoverage'], 'Active', 'Expired'),
+
+            // --- purchase ---
+            'purchase_date'    => $this->pick($obj, ['estPurchaseDate','purchase_date','purchaseDate','soldDate']),
+            'purchase_country' => $this->pick($obj, ['purchaseCountry','PurchaseCountry']),
+
+            // --- unit-state flags ---
+            'replaced_status'  => $this->pickBool($obj, ['replaced','Replaced'], 'Yes', 'No'),
+            'replacement'      => $this->pickBool($obj, ['replacement','Replacement'], 'Yes', 'No'),
+            'refurbished'      => $this->pickBool($obj, ['refurbished','Refurbished'], 'Yes', 'No'),
+            'demo_unit'        => $this->pickBool($obj, ['demoUnit','DemoUnit','demo'], 'Yes', 'No'),
+            'loaner'           => $this->pickBool($obj, ['loaner','Loaner'], 'Yes', 'No'),
         ];
     }
 
