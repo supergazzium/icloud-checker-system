@@ -61,7 +61,9 @@
                         {{ __('order.'.$s) }}
                     </span>
                 </td>
-                <td class="py-3.5 px-4 text-right font-mono font-semibold text-blue-600">฿{{ number_format($o->sell_price, 0) }}</td>
+                <td class="py-3.5 px-4 text-right font-mono font-semibold {{ $o->status === 'success' ? 'text-blue-600' : 'text-gray-300' }}">
+                    {{ $o->status === 'success' ? '฿'.number_format($o->sell_price, 0) : '—' }}
+                </td>
                 <td class="py-3.5 px-6 text-right text-gray-400 text-xs">{{ $o->created_at->format('d/m/y H:i') }}</td>
             </tr>
             @empty

@@ -133,11 +133,18 @@ INSERT INTO services (name_th, name_en, description_th, description_en, provider
  'ตรวจครบทุกรายการ รวม Carrier, Country, Purchase Date',
  'Full check: Carrier, Country, Purchase Date included',
  244, 'iphone', 25.00, 59.00, 'Instant', 1, 1, 2),
+-- Provider service #316 rejects MacBook serials with "Unable to check
+-- specifications." (verified 2026-08-14). Seeded INACTIVE so it doesn't
+-- go live to customers. Point MacBook users at #281 (Ultimate) instead.
 ('ตรวจสอบ MacBook ครบชุด','MacBook All-in-One Check',
  'ตรวจ Model, FMI, MDM, iCloud Clean/Lost สำหรับ MacBook',
  'Model, FMI, MDM, iCloud Clean/Lost for MacBook',
- 316, 'macbook', 20.00, 49.00, 'Instant', 1, 1, 3),
+ 316, 'macbook', 20.00, 49.00, 'Instant', 1, 0, 3),
 ('ตรวจสอบ iPad ครบชุด','iPad All-in-One Check',
  'ตรวจ Model, FMI, Activation Lock, Blacklist สำหรับ iPad',
  'Model, FMI, Activation Lock, Blacklist for iPad',
- 246, 'ipad', 15.00, 35.00, 'Instant', 1, 1, 4);
+ 246, 'ipad', 15.00, 35.00, 'Instant', 1, 1, 4),
+('ตรวจครบชุด (iFreeCheck Ultimate)','All-in-One (iFreeCheck Ultimate)',
+ 'ตรวจ Model, FMI, Activation Lock, Blacklist, SIM Lock, MDM, Warranty (iFreeCheck Ultimate)',
+ 'Model, FMI, Activation Lock, Blacklist, SIM Lock, MDM, Warranty (iFreeCheck Ultimate)',
+ 281, 'iphone', 19.80, 49.00, 'Instant', 1, 1, 5);

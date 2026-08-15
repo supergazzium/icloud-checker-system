@@ -70,9 +70,15 @@ class IFreeICloudService
             'region'          => $this->pick($obj, ['region','country','Country']),
             'fmi_status'      => $this->pickBool($obj, ['fmiOn','fmi','findmy','FindMy','icloud','iCloud','find_my'], 'ON', 'OFF'),
             'activation_status' => $this->pickBool($obj, ['activated','activation','activationStatus','ActivationStatus'], 'Activated', 'Not Activated'),
-            'blacklist_status' => $this->pick($obj, ['blacklist','Blacklist','gsma','lost']),
-            'simlock_status'  => $this->pick($obj, ['simLock','simlock','sim_lock','SimLock']) ?? $this->pick($obj, ['carrier']),
-            'mdm_status'      => $this->pick($obj, ['mdm','MDM','remoteManagement']),
+            // Provider uses `lostMode` on Apple GSX-style responses. Older
+            // aliases kept for other services.
+            'blacklist_status' => $this->pickBool($obj, ['lostMode','blacklistStatus','blacklist','Blacklist','gsma','lost','stolen'], 'Blacklisted', 'Clean'),
+            // Fall back to carrier ONLY when there's no simlock field at all;
+            // empty string means "not applicable" (Mac WiFi-only) and should
+            // stay empty, not surface as carrier name.
+            'simlock_status'  => $this->pick($obj, ['simLock','simlock','sim_lock','SimLock','simlockStatus']) ?? $this->pick($obj, ['carrier']),
+            // Provider uses `mdmLock` on Apple responses.
+            'mdm_status'      => $this->pickBool($obj, ['mdmLock','mdm','MDM','remoteManagement'], 'Enrolled', 'Not Enrolled'),
             'replaced_status' => $this->pickBool($obj, ['replaced','Replaced'], 'Yes', 'No'),
             'warranty'        => $this->pick($obj, ['warrantyStatus','warranty','Warranty']),
             'purchase_date'   => $this->pick($obj, ['estPurchaseDate','purchase_date','purchaseDate','soldDate']),
@@ -118,7 +124,10 @@ class IFreeICloudService
     private function pick(object $obj, array $keys): ?string
     {
         foreach ($keys as $k) {
-            if (isset($obj->$k) && $obj->$k !== '' && $obj->$k !== null) return (string) $obj->$k;
+            if (! isset($obj->$k)) continue;
+            $v = $obj->$k;
+            if ($v === null || $v === '' || $v === false) continue;
+            return (string) $v;
         }
         return null;
     }
@@ -126,10 +135,15 @@ class IFreeICloudService
     private function pickBool(object $obj, array $keys, string $trueLabel, string $falseLabel): ?string
     {
         foreach ($keys as $k) {
-            if (isset($obj->$k) && $obj->$k !== null) {
-                if (is_bool($obj->$k)) return $obj->$k ? $trueLabel : $falseLabel;
-                return (string) $obj->$k;
-            }
+            if (! isset($obj->$k) || $obj->$k === null || $obj->$k === '') continue;
+            $v = $obj->$k;
+            if (is_bool($v))    return $v ? $trueLabel : $falseLabel;
+            if (is_int($v))     return $v ? $trueLabel : $falseLabel;
+            $s = strtolower((string) $v);
+            if (in_array($s, ['1','true','yes','on','y','t'], true))  return $trueLabel;
+            if (in_array($s, ['0','false','no','off','n','f'], true)) return $falseLabel;
+            // Provider-supplied text ("Activated", "Blacklisted", etc.) — pass through as-is.
+            return (string) $v;
         }
         return null;
     }

@@ -35,6 +35,18 @@
         </div>
         @endif
 
+        {{-- Raw upstream response — admins only. Useful for diagnosing
+             provider-side rejections without another API round-trip. --}}
+        @if($order->raw_response)
+        <details class="mx-6 mb-6 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden group">
+            <summary class="p-4 cursor-pointer text-sm font-semibold text-gray-700 hover:bg-gray-100 select-none">
+                <i class="fas fa-code mr-2"></i>Raw upstream response
+                <span class="text-xs text-gray-400 font-normal ml-2">({{ strlen($order->raw_response) }} bytes)</span>
+            </summary>
+            <pre class="p-4 text-xs bg-gray-900 text-gray-100 overflow-auto max-h-96">{{ trim($order->raw_response) }}</pre>
+        </details>
+        @endif
+
         @php $alreadyRefunded = \App\Models\CreditTransaction::where('order_id',$order->id)->where('type','refund')->exists(); @endphp
         <div class="px-6 pb-6 flex flex-wrap gap-3">
             <a href="{{ route('orders.show',$order) }}" class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-semibold">

@@ -45,8 +45,12 @@
                 <td class="py-3 px-4">
                     <span class="px-2 py-0.5 rounded-full text-xs {{ $o->status==='success' ? 'bg-green-100 text-green-800' : ($o->status==='error' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">{{ $o->status }}</span>
                 </td>
-                <td class="py-3 px-4 text-right font-semibold text-blue-600">฿{{ number_format($o->sell_price,2) }}</td>
-                <td class="py-3 px-4 text-right font-semibold text-green-600">฿{{ number_format($o->profit,2) }}</td>
+                <td class="py-3 px-4 text-right font-semibold {{ $o->status==='success' ? 'text-blue-600' : 'text-gray-300' }}">
+                    {{ $o->status==='success' ? '฿'.number_format($o->sell_price,2) : '—' }}
+                </td>
+                <td class="py-3 px-4 text-right font-semibold {{ $o->status==='success' ? 'text-green-600' : 'text-gray-300' }}">
+                    {{ $o->status==='success' ? '฿'.number_format($o->profit,2) : '—' }}
+                </td>
                 <td class="py-3 px-4 text-right text-gray-400 text-xs">{{ $o->created_at->format('d/m/y H:i') }}</td>
             </tr>
             @empty

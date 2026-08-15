@@ -77,8 +77,16 @@
     {{-- device hero + grouped details --}}
     @php
         $pid = optional($order->service)->provider_service_id;
-        $isLaptop = $order->service->device_type === 'macbook';
-        $isTablet = $order->service->device_type === 'ipad';
+        // Infer illustration from the DETECTED model (accurate) with the
+        // service's device_type as a fallback when no model returned.
+        $modelLc = strtolower((string) ($order->result_model ?? ''));
+        if ($modelLc !== '') {
+            $isLaptop = str_contains($modelLc, 'mac');
+            $isTablet = str_contains($modelLc, 'ipad');
+        } else {
+            $isLaptop = $order->service->device_type === 'macbook';
+            $isTablet = $order->service->device_type === 'ipad';
+        }
     @endphp
     <div class="bg-white border border-gray-200 rounded-2xl mt-4 shadow-sm overflow-hidden">
         <div class="flex flex-col items-center gap-4 px-6 py-8 border-b border-gray-100">
