@@ -36,12 +36,16 @@ services:
 
       TRUSTED_PROXIES: "*"
 
-      # First-boot admin. Pass through from the host shell so local tests can
-      # exercise `php artisan admin:ensure`. Leave ADMIN_PASSWORD unset to
-      # have a strong random password generated and printed once to stdout.
+      # First-boot admins. Pass through from the host shell so local tests
+      # can exercise `php artisan admin:ensure`. ADMIN_* is primary; ADMIN2_*
+      # is optional (leave email empty to skip). Blank <SLOT>_PASSWORD →
+      # random password generated + printed once to stdout.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN2_EMAIL: ${ADMIN2_EMAIL:-}
+      ADMIN2_NAME: ${ADMIN2_NAME:-Secondary Admin}
+      ADMIN2_PASSWORD: ${ADMIN2_PASSWORD:-}
     depends_on:
       mysql:
         condition: service_healthy
