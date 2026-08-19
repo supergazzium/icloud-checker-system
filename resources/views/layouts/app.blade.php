@@ -51,6 +51,33 @@
         html { font-family: 'Noto Sans', 'Noto Sans Thai Looped', ui-sans-serif, system-ui, sans-serif; }
     </style>
 
+    <script>
+        // Clipboard helper with fallback for insecure contexts and older browsers.
+        // navigator.clipboard is undefined outside HTTPS/localhost, so a bare
+        // .writeText().then() throws and the copy silently fails.
+        window.copyToClipboard = function (text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise(function (resolve, reject) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.top = '-1000px';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy') ? resolve() : reject(new Error('copy failed'));
+                } catch (e) {
+                    reject(e);
+                } finally {
+                    document.body.removeChild(ta);
+                }
+            });
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>

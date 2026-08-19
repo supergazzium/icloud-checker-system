@@ -48,7 +48,7 @@
                         <div class="flex items-center gap-2" x-data="{ copied: false }">
                             <p class="text-sm text-gray-700 font-mono">{{ $ba->account_number }}</p>
                             <button type="button"
-                                    @click.prevent.stop="navigator.clipboard.writeText('{{ preg_replace('/\D+/', '', $ba->account_number) }}').then(() => { copied = true; setTimeout(() => copied = false, 1500) })"
+                                    @click.prevent.stop="copyToClipboard('{{ preg_replace('/\D+/', '', $ba->account_number) }}').then(() => { copied = true; setTimeout(() => copied = false, 1500) }).catch(() => {})"
                                     :class="copied ? 'text-green-600' : 'text-gray-400 hover:text-blue-600'"
                                     class="text-xs transition"
                                     :title="copied ? '{{ __('app.copied') }}' : '{{ __('app.copy_account_number') }}'"
