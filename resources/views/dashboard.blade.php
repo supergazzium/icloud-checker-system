@@ -9,15 +9,15 @@
         <p class="text-2xl font-bold text-blue-600">฿{{ number_format($stats['balance'],2) }}</p>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs text-gray-500 mb-1">{{ __('app.total_orders') ?? 'รายการทั้งหมด' }}</p>
+        <p class="text-xs text-gray-500 mb-1">{{ __('app.total_orders') }}</p>
         <p class="text-2xl font-bold text-gray-900">{{ $stats['total_orders'] }}</p>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs text-gray-500 mb-1">{{ __('app.success_orders') ?? 'สำเร็จ' }}</p>
+        <p class="text-xs text-gray-500 mb-1">{{ __('app.success_orders') }}</p>
         <p class="text-2xl font-bold text-green-600">{{ $stats['success_orders'] }}</p>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <p class="text-xs text-gray-500 mb-1">{{ __('app.error_orders') ?? 'ผิดพลาด' }}</p>
+        <p class="text-xs text-gray-500 mb-1">{{ __('app.error_orders') }}</p>
         <p class="text-2xl font-bold text-red-600">{{ $stats['error_orders'] }}</p>
     </div>
 </div>
@@ -26,7 +26,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-900">{{ __('app.order_history') }}</h3>
-            <a href="{{ route('orders.index') }}" class="text-sm text-blue-600 hover:underline">{{ __('app.view_all') ?? 'ดูทั้งหมด' }}</a>
+            <a href="{{ route('orders.index') }}" class="text-sm text-blue-600 hover:underline">{{ __('app.view_all') }}</a>
         </div>
         <div class="divide-y divide-gray-100">
             @forelse($recentOrders as $order)
@@ -40,7 +40,7 @@
                 </span>
             </a>
             @empty
-            <p class="px-6 py-8 text-center text-sm text-gray-400">{{ __('app.no_data') ?? 'ยังไม่มีรายการ' }}</p>
+            <p class="px-6 py-8 text-center text-sm text-gray-400">{{ __('app.no_data') }}</p>
             @endforelse
         </div>
     </div>
@@ -48,7 +48,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-900">{{ __('app.credits') }}</h3>
-            <a href="{{ route('credits.index') }}" class="text-sm text-blue-600 hover:underline">{{ __('app.view_all') ?? 'ดูทั้งหมด' }}</a>
+            <a href="{{ route('credits.index') }}" class="text-sm text-blue-600 hover:underline">{{ __('app.view_all') }}</a>
         </div>
         <div class="divide-y divide-gray-100">
             @forelse($recentCredits as $tx)
@@ -62,7 +62,7 @@
                 </span>
             </div>
             @empty
-            <p class="px-6 py-8 text-center text-sm text-gray-400">{{ __('app.no_data') ?? 'ยังไม่มีรายการ' }}</p>
+            <p class="px-6 py-8 text-center text-sm text-gray-400">{{ __('app.no_data') }}</p>
             @endforelse
         </div>
     </div>

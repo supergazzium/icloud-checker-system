@@ -115,4 +115,10 @@
     'no_topups_here'               => 'ไม่มีรายการในตัวกรองนี้',
     'back_to_topups'               => 'กลับไปหน้าตรวจสอบ',
     'current_balance'              => 'ยอดคงเหลือปัจจุบัน',
+
+    'total_orders'   => 'รายการทั้งหมด',
+    'success_orders' => 'สำเร็จ',
+    'error_orders'   => 'ผิดพลาด',
+    'view_all'       => 'ดูทั้งหมด',
+    'no_data'        => 'ยังไม่มีรายการ',
 ];

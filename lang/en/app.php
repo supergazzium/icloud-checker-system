@@ -115,4 +115,10 @@
     'no_topups_here'               => 'No topups match this filter.',
     'back_to_topups'               => 'Back to topups',
     'current_balance'              => 'Current balance',
+
+    'total_orders'   => 'Total orders',
+    'success_orders' => 'Successful',
+    'error_orders'   => 'Failed',
+    'view_all'       => 'View all',
+    'no_data'        => 'No records yet',
 ];
