@@ -62,14 +62,16 @@
 
     {{-- status flags --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 mt-4">
-        @foreach($flags as $f)
+        @foreach($flags as $i => $f)
             @php [$c,$ic] = $flagColor($f['val'], $f['bad']); $t = $tone[$c]; @endphp
-            <div class="rounded-2xl border {{ $t[0] }} {{ $t[1] }} p-3 sm:p-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas {{ $ic }} {{ $t[2] }} text-sm"></i>
-                    <span class="text-xs font-semibold text-gray-500">{{ $f['label'] }}</span>
+            {{-- Last card in a 5-item list spans full width on the 2-col
+                 mobile grid so it never sits alone as a half-width orphan. --}}
+            <div class="rounded-2xl border {{ $t[0] }} {{ $t[1] }} p-3 sm:p-4 @if($loop->last && count($flags) % 2 !== 0) col-span-2 sm:col-span-1 @endif">
+                <div class="flex items-start gap-2">
+                    <i class="fas {{ $ic }} {{ $t[2] }} text-sm shrink-0 mt-0.5"></i>
+                    <span class="text-[11px] sm:text-xs font-semibold text-gray-500 leading-tight">{{ $f['label'] }}</span>
                 </div>
-                <p class="mt-2.5 text-sm sm:text-base font-bold {{ $t[2] }}">{{ $f['val'] ?: '—' }}</p>
+                <p class="mt-2 sm:mt-2.5 text-sm sm:text-base font-bold {{ $t[2] }} break-words leading-snug">{{ $f['val'] ?: '—' }}</p>
             </div>
         @endforeach
     </div>
@@ -89,7 +91,7 @@
         }
     @endphp
     <div class="bg-white border border-gray-200 rounded-2xl mt-4 shadow-sm overflow-hidden">
-        <div class="flex flex-col items-center gap-4 px-6 py-8 border-b border-gray-100">
+        <div class="flex flex-col items-center gap-4 px-4 sm:px-6 py-6 sm:py-8 border-b border-gray-100">
             <div style="height:150px;display:flex;align-items:center;justify-content:center;">
                 @if($order->result_thumbnail)
                     {{-- Apple product image from provider. Falls back to
@@ -121,14 +123,14 @@
                     </div>
                 @endif
             </div>
-            <div class="text-center">
-                <p class="text-lg font-bold text-gray-900">{{ $order->result_model ?? '—' }}</p>
-                <p class="mt-0.5 text-sm text-gray-500">
+            <div class="text-center w-full">
+                <p class="text-base sm:text-lg font-bold text-gray-900 break-words">{{ $order->result_model ?? '—' }}</p>
+                <p class="mt-0.5 text-xs sm:text-sm text-gray-500 break-words">
                     {{ collect([$order->result_color, $order->result_storage, $order->result_region])->filter()->implode(' · ') ?: '—' }}
                 </p>
-                <div class="mt-2 flex flex-wrap justify-center gap-2">
-                    @if($order->result_serial)<span class="text-[11px] font-mono bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">SN: {{ $order->result_serial }}</span>@endif
-                    <span class="text-[11px] font-mono bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{{ $order->result_imei ? 'IMEI: '.$order->result_imei : $order->imei_serial }}</span>
+                <div class="mt-2.5 flex flex-wrap justify-center gap-2">
+                    @if($order->result_serial)<span class="text-[11px] font-mono bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full break-all">SN: {{ $order->result_serial }}</span>@endif
+                    <span class="text-[11px] font-mono bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full break-all">{{ $order->result_imei ? 'IMEI: '.$order->result_imei : $order->imei_serial }}</span>
                 </div>
             </div>
         </div>
@@ -224,22 +226,27 @@
         {{-- Skip groups where every row is null — reduces noise for
              services that only return a subset of fields. --}}
         @continue(! collect($g['rows'])->contains(fn ($r) => filled($r[2])))
-        <p class="px-6 pt-5 pb-1 text-center text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ $g['title'] }}</p>
-        <div class="px-6 pb-4 max-w-md mx-auto">
+        <p class="px-4 sm:px-6 pt-5 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ $g['title'] }}</p>
+        <div class="px-4 sm:px-6 pb-4">
+            <dl class="divide-y divide-gray-100">
             @foreach($g['rows'] as [$type, $label, $val])
                 @if(filled($val))
-                <div class="flex items-center justify-center gap-2 py-2.5 border-b border-gray-100 text-center">
-                    <span class="text-sm text-gray-500">{{ $label }}:</span>
+                {{-- Two-column key/value row: label locks to the left, value
+                     aligns right and wraps under itself on narrow screens
+                     without knocking the label out of alignment. --}}
+                <div class="flex items-start justify-between gap-3 sm:gap-4 py-2.5">
+                    <dt class="text-xs sm:text-sm text-gray-500 shrink-0 pt-0.5 max-w-[45%]">{{ $label }}</dt>
                     @if($type === 'p')
-                        <span class="text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap {{ $pillClass[$pillKind($val)] }}">{{ $val }}</span>
+                        <dd class="text-right"><span class="inline-block text-xs font-bold px-3 py-1 rounded-full {{ $pillClass[$pillKind($val)] }}">{{ $val }}</span></dd>
                     @elseif($type === 'm')
-                        <span class="text-sm font-bold font-mono text-gray-900">{{ $val }}</span>
+                        <dd class="text-sm font-bold font-mono text-gray-900 text-right break-all min-w-0">{{ $val }}</dd>
                     @else
-                        <span class="text-sm font-bold text-gray-900">{{ $val }}</span>
+                        <dd class="text-sm font-bold text-gray-900 text-right break-words min-w-0">{{ $val }}</dd>
                     @endif
                 </div>
                 @endif
             @endforeach
+            </dl>
         </div>
         @endforeach
     </div>
