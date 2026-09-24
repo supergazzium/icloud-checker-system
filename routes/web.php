@@ -1,7 +1,11 @@
 <?php
-use App\Http\Controllers\{DashboardController, CheckController, OrderController, CreditController, LanguageController};
+use App\Http\Controllers\{LandingController, DashboardController, CheckController, OrderController, CreditController, LanguageController};
 use App\Http\Controllers\Admin\{AdminDashboardController, AdminUserController, AdminServiceController, AdminServiceImportController, AdminOrderController, AdminSettingController, AdminBankAccountController, AdminTopupController};
 use Illuminate\Support\Facades\Route;
+
+// Public marketing homepage. Guests see the landing page; authenticated
+// users are bounced to their dashboard by LandingController.
+Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 Route::get('/terms',   fn() => view('legal.terms'))->name('legal.terms');
@@ -13,7 +17,7 @@ Route::get('/auth/{provider}/redirect', [\App\Http\Controllers\SocialAuthControl
 Route::get('/auth/{provider}/callback', [\App\Http\Controllers\SocialAuthController::class, 'callback'])->name('social.callback');
 
 Route::middleware(['auth','active.user','set.locale','password.change'])->group(function () {
-    Route::get('/',         [DashboardController::class,'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
     Route::get('/check',    [CheckController::class,'index'])->name('check.index');
     Route::post('/check',   [CheckController::class,'store'])->middleware('throttle:10,1')->name('check.store');
     Route::get('/orders',         [OrderController::class,'index'])->name('orders.index');
