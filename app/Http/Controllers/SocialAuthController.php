@@ -8,15 +8,18 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
+    /** Social providers we accept. Facebook login was removed. */
+    private const ALLOWED_PROVIDERS = ['google'];
+
     public function redirect(string $provider)
     {
-        abort_unless(in_array($provider, ['google','facebook']), 404);
+        abort_unless(in_array($provider, self::ALLOWED_PROVIDERS, true), 404);
         return Socialite::driver($provider)->redirect();
     }
 
     public function callback(string $provider)
     {
-        abort_unless(in_array($provider, ['google','facebook']), 404);
+        abort_unless(in_array($provider, self::ALLOWED_PROVIDERS, true), 404);
 
         $social = Socialite::driver($provider)->stateless()->user();
 

@@ -14,6 +14,11 @@
     $flagColor = function ($val, $badWords) {
         $v = strtolower((string) $val);
         if ($v === '' ) return ['gray','fa-minus'];
+        // A negated phrase ("Not Enrolled", "Not Managed", "Not Locked") is the
+        // CLEAN state — mark it green even though it contains a bad substring
+        // like "enroll" or "lock". Without this, str_contains('not enrolled',
+        // 'enroll') wrongly flags a clean MDM result as red.
+        if (str_contains($v, 'not ')) return ['green','fa-circle-check'];
         foreach ($badWords as $w) if (str_contains($v, $w)) return ['red','fa-circle-xmark'];
         return ['green','fa-circle-check'];
     };
@@ -146,6 +151,10 @@
             $pillKind = function ($val) use ($badWords) {
                 $v = strtolower(trim((string) $val));
                 if ($v === '' || $v === 'n/a') return 'gray';
+                // Negated phrases ("Not Enrolled", "Not Managed", "Not Locked")
+                // are the clean state — green, despite containing a bad
+                // substring like "enroll"/"lock".
+                if (str_contains($v, 'not ')) return 'green';
                 foreach ($badWords as $w) if (str_contains($v, $w)) return 'red';
                 return 'green';
             };
