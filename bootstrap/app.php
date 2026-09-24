@@ -5,7 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
@@ -32,3 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+// Production provisions the schema from database/schema.sql, so the test suite
+// gets its framework tables from database/testing-migrations via this provider,
+// registered only under the testing environment. Read APP_ENV directly — the
+// application isn't booted yet here, so $app->environment() can't resolve.
+if (($_SERVER['APP_ENV'] ?? $_ENV['APP_ENV'] ?? env('APP_ENV')) === 'testing') {
+    $app->register(\App\Providers\TestingMigrationServiceProvider::class);
+}
+
+return $app;
